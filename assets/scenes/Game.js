@@ -10,7 +10,8 @@ export default class Game extends Phaser.Scene {
     this.gameOver = false;
     this.level = 1;
     this.bounces = 0;
-
+    this.ballSpeed = 200;
+    this.background = "beige";
 
   }
 
@@ -51,35 +52,56 @@ export default class Game extends Phaser.Scene {
     }
 
   create() {
-    this.deathZone = this.physics.add.group();
-    this.deathZone.create(400, 590, "deathZone").refreshBody().setDepth(1);
-    // this.deathZone.setCollideWorldBounds(true);
 
-    this.pala = this.physics.add.sprite(400, 450, "pala");
-    this.pala.setCollideWorldBounds(true);
+    this.bg = this.add.image(400, 300, this.background);
+
+    this.deathZone = this.physics.add.image(400, 587, "deathZone").refreshBody().setDepth(1).setImmovable(true).setCollideWorldBounds(true);
+    // this.deathZone.create(400, 587, "deathZone").refreshBody().setDepth(1).setImmovable(true).setCollideWorldBounds(true);
+
+    this.pala = this.physics.add.sprite(400, 520, "pala").setImmovable(true).setCollideWorldBounds(true);
     
-    this.pelota = this.physics.add.group({
-      immovable: true
-    });
+    
+    this.ball = this.physics.add.image(300, 400, "pelota").setBounce(1, 1).setCircle(25).setCollideWorldBounds(true);
 
-    const ball = this.pelota.create(300, 400, "pelota").setBounce(1, 1).setCircle(25);
-    ball.setCollideWorldBounds(true);
-
-    this.shapesGroup = this.physics.add.group({
+    this.obstacleGroup = this.physics.add.group({
       immovable: true,
       allowGravity: false
     });
 
-
     //create cursor
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    this.physics.add.collider(this.shapesGroup, this.pelota);
+    this.physics.add.collider(this.obstacleGroup, this.ball);
     this.physics.add.collider(this.pala, this.deathZone);
-    this.physics.add.collider(this.pelota, this.deathZone);
-    this.physics.add.collider(this.pala, this.pelota);
+    this.physics.add.collider(
+      this.ball, 
+      this.deathZone,
+      this.lose,
+      null,
+      this
+      );
+    this.physics.add.collider(
+      this.pala, 
+      this.ball,
+      this.bounceReader,
+      null,
+      this
+      );
 
-    let velocidadIni = ball.setVelocity(200, -200);
+    this.ball.setVelocity(this.ballSpeed, -this.ballSpeed);
+
+    this.levelText = this.add.text(20, 20, "NIVEL: 1", {
+      fontSize: "128px",
+      fontStyle: "impact",
+      fill: "#FFFFFF"
+
+    }).setDepth(1);
+
+    this.bounceText = this.add.text(20, 50, "REBOTES: 0", {
+      fontSize: "32px",
+      fontStyle: "impact",
+      fill: "#FFFFFF"
+    }).setDepth(1);
   
   
   }
@@ -107,13 +129,56 @@ export default class Game extends Phaser.Scene {
     
   }
 
-  bounceEffects() {
+  bounceReader (ball, pala) {
+    this.bounces++;
+    this.bounceText.setText("REBOTES: " + this.bounces);
+    if (this.bounces >= 10) {
+      this.newLevel();
+    };
+  }
+
+  newLevel() {
+    this.bounces = 0;
+    this.level++;
+    this.levelText.setText("NIVEL: " + this.level);
+    this.ballSpeed = this.ballSpeed * 1.1;
+    this.ball.setVelocity(this.ballSpeed, -this.ballSpeed);
+    
+    const randomBgPick = Phaser.Math.RND.between(0, 17);
+    const randomBgCloset = ["black", "brown", "darkBlue", "darkGreen", "darkGrey", "darkPurple","fuxia", "lightBlue", "lightPink", "lightPurple", "oceanBlue", "perry", "pink", "purp", "red", "salmon", "weirdPurp", "notPhrog"];
+    const bgPicked = randomBgCloset[randomBgPick];
+
+    this.bg.setTexture(bgPicked);
+
+    console.log(bgPicked);
+
+    this.newObstacle();
+
+    if (this.level > 20) {
+      this.physics.pause();
+      this.win = this.add.image(400, 300, "victory").setInteractive().on("pointerdown", () => this.scene.restart())
+    };
+  }
+
+  newObstacle() {
+    const randomX = Phaser.Math.RND.between(100, 800);
+    const randomY = Phaser.Math.RND.between(100, 300);
+    const randomObstacleSelector = Phaser.Math.RND.between(0, 2);
+    const randomObstacleTypes = ["small", "medium", "big"];
+    const randomObstacle = randomObstacleTypes[randomObstacleSelector];
+
+    const obstacle = this.obstacleGroup.create(randomX, randomY, randomObstacle).refreshBody(
+
+    );
 
   }
 
-  lose () {
-
+  lose() {
+    this.physics.pause();
+    this.gameOver = true;
+    if (this.gameOver = true) {
+      this.lose = this.add.image(400, 300, "defeat").setInteractive().on("pointerdown", () => this.scene.restart());
+    }
   }
-
 }
 
